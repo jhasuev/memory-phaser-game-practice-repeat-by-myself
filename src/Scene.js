@@ -19,16 +19,40 @@ class Scene extends Phaser.Scene {
   create() {
     this.createBackground()
     this.createCards()
+    this.createTimer()
+    this.createInfo()
     this.start()
   }
 
   start() {
     this.initCards()
+    this.initTimeout()
     this.openedCounts = 0
+    this.timer.paused = false
   }
 
   restart() {
-    this.start()
+    this.timer.paused = true
+    this.moveCardsToEdge(() => {
+      this.start()
+    })
+  }
+
+  moveCardsToEdge(callback) {
+    let count = 0
+    this.cards.forEach(card => {
+      card.move({
+        x: config.width + card.width / 2,
+        y: config.height + card.height / 2,
+        callback: () => {
+          if (++count >= this.cards.length) {
+            if (callback) {
+              callback()
+            }
+          }
+        }
+      })
+    })
   }
 
   createBackground() {
@@ -82,6 +106,48 @@ class Scene extends Phaser.Scene {
     })
   }
 
+  createTimer() {
+    this.initTimeout()
+
+    this.timer = this.time.addEvent({
+      delay: 1000,
+      loop: true,
+      callback: this.onTimeTick,
+      callbackScope: this
+    })
+  }
+
+  initTimeout() {
+    this.timeout = config.timeout
+  }
+
+  onTimeTick() {
+    this.updateInfo()
+
+    if(--this.timeout < 0) {
+      this.restart()
+    }
+  }
+
+  createInfo() {
+    this.textInfo = this.add.text(10, 340, this.getInfo(), {
+      "color": "#fff",
+      "font": "30px 'CurseCasual'"
+    })
+  }
+
+  updateInfo() {
+    this.textInfo.setText(this.getInfo())
+  }
+
+  getInfo() {
+    let info = [
+      `Time: ${this.timeout}`,
+    ]
+
+    return info.join("\n")
+  }
+
   getCardsPositions() {
     let positions = []
     const { width, height } = this.textures.get("card").getSourceImage()
@@ -91,6 +157,7 @@ class Scene extends Phaser.Scene {
     const xOffset = (config.width - cardsWidth) / 2
     const yOffset = (config.height - cardsHeight) / 2
 
+    let id = 0
     for (let row = 0; row < config.rows; row++) {
       for (let col = 0; col < config.cols; col++) {
         positions.push({
@@ -98,6 +165,7 @@ class Scene extends Phaser.Scene {
           height,
           x: xOffset + (width + spaceBetween) * col + width / 2,
           y: yOffset + (height + spaceBetween) * row + height / 2,
+          delay: id++ * 100,
         })
       }
     }
