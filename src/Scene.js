@@ -1,4 +1,5 @@
 import config from "./config"
+import Card from "./Card"
 
 class Scene extends Phaser.Scene {
   constructor(){
@@ -8,25 +9,76 @@ class Scene extends Phaser.Scene {
   preload() {
     this.load.image("bg", "assets/img/background.png")
     this.load.image("card", "assets/img/card.png")
+    this.load.image("card1", "assets/img/card1.png")
+    this.load.image("card2", "assets/img/card2.png")
+    this.load.image("card3", "assets/img/card3.png")
+    this.load.image("card4", "assets/img/card4.png")
+    this.load.image("card5", "assets/img/card5.png")
   }
 
   create() {
-    this.render()
+    this.createBackground()
+    this.createCards()
+    this.start()
   }
 
-  render() {
-    this.renderBackground()
-    this.renderCards()
+  start() {
+    this.initCards()
+    this.openedCounts = 0
   }
 
-  renderBackground() {
+  restart() {
+    this.start()
+  }
+
+  createBackground() {
     this.add.sprite(0, 0, "bg").setOrigin(0)
   }
 
-  renderCards() {
+  createCards() {
+    this.cards = []
+    for(let card of config.cards) {
+      for(let i = 0; i < 2; i++) {
+        this.cards.push(new Card(this, card))
+      }
+    }
+
+    this.input.on("gameobjectdown", this.onCardClick, this)
+  }
+
+  onCardClick(pointer, card) {
+    if (card.opened) return;
+
+    if (this.openedCard) {
+      if (this.openedCard.card === card.card) {
+        // если открытые карты одинаковые
+        this.openedCard = null
+        this.openedCounts++
+      } else {
+        // если карты разные
+        this.openedCard.close()
+        this.openedCard = card
+      }
+    } else {
+      this.openedCard = card
+    }
+
+    card.open(() => {
+      this.checkWin()
+    })
+  }
+
+  checkWin() {
+    if (this.openedCounts >= config.cards.length) {
+      this.restart()
+    }
+  }
+
+  initCards() {
     let positions = this.getCardsPositions()
-    positions.forEach(position => {
-      this.add.sprite(position.x, position.y, "card").setOrigin(0)
+    this.cards.forEach(card => {
+      card.init(positions.pop())
+      card.close()
     })
   }
 
@@ -44,13 +96,13 @@ class Scene extends Phaser.Scene {
         positions.push({
           width,
           height,
-          x: xOffset + (width + spaceBetween) * col,
-          y: yOffset + (height + spaceBetween) * row,
+          x: xOffset + (width + spaceBetween) * col + width / 2,
+          y: yOffset + (height + spaceBetween) * row + height / 2,
         })
       }
     }
 
-    return positions
+    return Phaser.Utils.Array.Shuffle(positions)
   }
 }
 
