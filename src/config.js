@@ -8,5 +8,9 @@ export default {
   rows: 2,
   cols: 5,
   cards: [1,2,3,4,5],
-  scene: new Scene()
+  scene: new Scene(),
+  scale: {
+    mode: Phaser.Scale.WIDTH_CONTROLS_HEIGHT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
 }
