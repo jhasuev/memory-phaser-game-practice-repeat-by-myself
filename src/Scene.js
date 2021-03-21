@@ -29,9 +29,15 @@ class Scene extends Phaser.Scene {
     this.initTimeout()
     this.openedCounts = 0
     this.timer.paused = false
+    this.onRestartProcessing = false
   }
 
   restart() {
+    if (this.onRestartProcessing) {
+      return;
+    }
+    this.onRestartProcessing = true
+
     this.timer.paused = true
     this.moveCardsToEdge(() => {
       this.start()
@@ -77,11 +83,12 @@ class Scene extends Phaser.Scene {
       if (this.openedCard.card === card.card) {
         // если открытые карты одинаковые
         this.openedCard = null
-        this.openedCounts++
+        this.onSuccess()
       } else {
         // если карты разные
         this.openedCard.close()
         this.openedCard = card
+        this.onFail()
       }
     } else {
       this.openedCard = card
@@ -94,7 +101,7 @@ class Scene extends Phaser.Scene {
 
   checkWin() {
     if (this.openedCounts >= config.cards.length) {
-      this.restart()
+      this.onPassed()
     }
   }
 
@@ -130,7 +137,11 @@ class Scene extends Phaser.Scene {
   }
 
   createInfo() {
-    this.textInfo = this.add.text(10, 340, this.getInfo(), {
+    this.scores = 0
+    this.scoresCoef = 1
+    this.passed = 0
+
+    this.textInfo = this.add.text(10, 310, this.getInfo(), {
       "color": "#fff",
       "font": "30px 'CurseCasual'"
     })
@@ -143,9 +154,32 @@ class Scene extends Phaser.Scene {
   getInfo() {
     let info = [
       `Time: ${this.timeout}`,
+      `Score: ${this.scores}`,
+      `Passed: ${this.passed}`,
     ]
 
     return info.join("\n")
+  }
+
+  onSuccess() {
+    this.openedCounts++
+    this.addScore()
+    this.updateInfo()
+  }
+
+  onFail() {
+    this.scoresCoef = 1
+  }
+
+  onPassed() {
+    this.passed += 1
+    this.updateInfo()
+    this.restart()
+  }
+
+  addScore() {
+    this.scores += Math.ceil(10 * this.scoresCoef)
+    this.scoresCoef *= 1.5
   }
 
   getCardsPositions() {
