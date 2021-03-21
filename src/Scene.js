@@ -7,6 +7,11 @@ class Scene extends Phaser.Scene {
   }
 
   preload() {
+    this.preloadImages()
+    this.preloadSounds()
+  }
+
+  preloadImages() {
     this.load.image("bg", "assets/img/background.png")
     this.load.image("card", "assets/img/card.png")
     this.load.image("card1", "assets/img/card1.png")
@@ -16,11 +21,20 @@ class Scene extends Phaser.Scene {
     this.load.image("card5", "assets/img/card5.png")
   }
 
+  preloadSounds() {
+    this.load.audio("card", "assets/sounds/card.mp3")
+    this.load.audio("complete", "assets/sounds/complete.mp3")
+    this.load.audio("success", "assets/sounds/success.mp3")
+    this.load.audio("theme", "assets/sounds/theme.mp3")
+    this.load.audio("timeout", "assets/sounds/timeout.mp3")
+  }
+
   create() {
     this.createBackground()
     this.createCards()
     this.createTimer()
     this.createInfo()
+    this.initSounds()
     this.start()
   }
 
@@ -29,15 +43,10 @@ class Scene extends Phaser.Scene {
     this.initTimeout()
     this.openedCounts = 0
     this.timer.paused = false
-    this.onRestartProcessing = false
+    this.running = true
   }
 
   restart() {
-    if (this.onRestartProcessing) {
-      return;
-    }
-    this.onRestartProcessing = true
-
     this.timer.paused = true
     this.moveCardsToEdge(() => {
       this.start()
@@ -61,6 +70,18 @@ class Scene extends Phaser.Scene {
     })
   }
 
+  initSounds() {
+    this.sounds = {
+      "card": this.add.scene.sound.add("card"),
+      "complete": this.add.scene.sound.add("complete"),
+      "success": this.add.scene.sound.add("success"),
+      "theme": this.add.scene.sound.add("theme"),
+      "timeout": this.add.scene.sound.add("timeout"),
+    }
+
+    this.sounds.theme.play({ volume: .1, loop: true})
+  }
+
   createBackground() {
     this.add.sprite(0, 0, "bg").setOrigin(0)
   }
@@ -78,6 +99,8 @@ class Scene extends Phaser.Scene {
 
   onCardClick(pointer, card) {
     if (card.opened) return;
+
+    this.sounds.card.play()
 
     if (this.openedCard) {
       if (this.openedCard.card === card.card) {
@@ -132,8 +155,13 @@ class Scene extends Phaser.Scene {
     this.updateInfo()
 
     if(--this.timeout < 0) {
-      this.restart()
+      this.onTimeOver()
     }
+  }
+
+  onTimeOver() {
+    this.restart()
+    this.sounds.timeout.play()
   }
 
   createInfo() {
@@ -165,6 +193,8 @@ class Scene extends Phaser.Scene {
     this.openedCounts++
     this.addScore()
     this.updateInfo()
+
+    this.sounds.success.play()
   }
 
   onFail() {
@@ -172,9 +202,13 @@ class Scene extends Phaser.Scene {
   }
 
   onPassed() {
+    if (!this.running) return;
+    this.running = false
+
     this.passed += 1
     this.updateInfo()
     this.restart()
+    this.sounds.complete.play()
   }
 
   addScore() {
